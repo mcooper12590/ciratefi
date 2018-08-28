@@ -1,4 +1,5 @@
-#include "stdafx.h"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <cmath>
 #include "ciratefiAlgorithm.h"
 
 using namespace std;
@@ -17,10 +18,10 @@ namespace Ciratefi
 	}
 
 	double CiratefiData::CircularSample(Mat& image, int y, int x, int radius)
-	{ 
+	{
 		int y2=0; int x2=radius; int sum=0; int count=0;
 		int r2=radius*radius;
-		while (x2>0) 
+		while (x2>0)
 		{
 			sum+=*(image.data+image.step[0]*(y+y2)+image.step[1]*(x+x2));
 			sum+=*(image.data+image.step[0]*(y-y2)+image.step[1]*(x-x2));
@@ -52,25 +53,25 @@ namespace Ciratefi
 		int lastRow=sourceImage.rows-smallestRadius;
 		int lastCol=sourceImage.cols-smallestRadius;
 
-		for (int s=0; s<_circleNum; s++) 
+		for (int s=0; s<_circleNum; s++)
 		{
 			int sn=s*n;
 			int radius=round(_circleDistance*s+_initialRadius);
 			for (int y=smallestRadius; y<lastRow; y++)
 			{
 				int rn=y*sourceImage.cols;
-				for (int x=smallestRadius; x<lastCol; x++) 
+				for (int x=smallestRadius; x<lastCol; x++)
 				{
 					if(y+radius<sourceImage.rows && y-radius>=0 && x+radius<sourceImage.cols && x-radius>=0)
 					{
 						_ca[sn+rn+x]=CircularSample(sourceImage, y, x, radius);
-					}					
+					}
 				}
 			}
 		}
 	}
 
-	Mat CiratefiData::quadradaimpar(Mat& image)
+	Mat CiratefiData::MakeOdd(Mat& image)
 	{
 		int length=min(image.rows,image.cols);
 		if (length%2==0) length--;
@@ -83,7 +84,7 @@ namespace Ciratefi
 	{
 		_cq.resize(_scaleNum*_circleNum, -1.0);
 		Mat resizedTemplate;
-		for (int s=0; s<_scaleNum; s++) 
+		for (int s=0; s<_scaleNum; s++)
 		{
 			int sn=s*_circleNum;
 			double scaleRatio=scale(s);
@@ -93,7 +94,7 @@ namespace Ciratefi
 			int resizedCircleNum=min((int)floor(scaleRatio/scale(_scaleNum-1)*_circleNum),_circleNum);
 			int templateRowCenter=(resizedTemplate.rows-1)/2;
 			int templateColCenter=(resizedTemplate.cols-1)/2;
-			for (int c=0; c<resizedCircleNum; c++) 
+			for (int c=0; c<resizedCircleNum; c++)
 			{
 				_cq[sn+c]=CircularSample(resizedTemplate,templateRowCenter,templateColCenter,round(c*_circleDistance+_initialRadius));
 			}
@@ -104,7 +105,7 @@ namespace Ciratefi
 	{
 		vector<vector<double> > cqi(_scaleNum);
 		vector<double> cqi2(_scaleNum,0);
-		for (int s=0; s<_scaleNum; s++) 
+		for (int s=0; s<_scaleNum; s++)
 		{
 			int resizedCircleNum=_circleNum-1;
 			int sn=s*_circleNum;
@@ -134,14 +135,14 @@ namespace Ciratefi
 		int lastCol=sourceImage.cols-smallestRadius;
 		_cis.reserve((lastRow-smallestRadius)*(lastCol-smallestRadius)*_scaleNum);
 		vector<double> Y;
-		for (int y=smallestRadius; y<lastRow; y++) 
+		for (int y=smallestRadius; y<lastRow; y++)
 		{
 			int rn=y*sourceImage.cols;
-			for (int x=smallestRadius; x<lastCol; x++) 
+			for (int x=smallestRadius; x<lastCol; x++)
 			{
 				double maxCoef=-2;
 				int fitScale;
-				for (int s=0; s<_scaleNum; s++) 
+				for (int s=0; s<_scaleNum; s++)
 				{
 					vector<double>& X=cqi[s];
 					double X2=cqi2[s];
@@ -173,13 +174,13 @@ namespace Ciratefi
 					}
 					coef/=sqrt(X2*Y2);
 					if (_isMatchNegative==true) coef=abs(coef);
-					if (coef>maxCoef) 
+					if (coef>maxCoef)
 					{
 						maxCoef=coef;
 						fitScale=s;
 					}
 				}
-				if (maxCoef>_scaleThreshold) 
+				if (maxCoef>_scaleThreshold)
 				{
 					_cis.push_back(CorrData(y, x, fitScale, -1, maxCoef));
 				}
@@ -201,37 +202,37 @@ namespace Ciratefi
 				return Mat();
 			}
 			cifiResult.at<Vec3b>(row, col)=Vec3b((uchar)(_cis[i].GetCoefficient()*255.0),_cis[i].GetScale(), 255);
-		}		
+		}
 		return cifiResult;
 	}
 
 	double CiratefiData::RadialSample(Mat& image, int centerY, int centerX, double angle, double radius)
 	{
-		//§â¶ê¤Á¦¨8µ¥¥÷­pºâ
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½ï¿½ï¿½ï¿½pï¿½ï¿½
 		int sum=0; int count=0;
 		int x,y,dx,dy,a,err,dx2,dy2,sobe;
 		int x1=centerX; int x2=centerX+round(cos(angle)*radius);
 		int y1=centerY; int y2=centerY-round(sin(angle)*radius);
 		dx=x2-x1; dy=y2-y1;
 
-		if (abs(dx)>=abs(dy))//¦¨¥ß¥Nªí¦ì©ó¶ê§Îªº1, 4, 5, 8°Ï
-		{ 
-			if (dx<0) 
+		if (abs(dx)>=abs(dy))//ï¿½ï¿½ï¿½ß¥Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½1, 4, 5, 8ï¿½ï¿½
+		{
+			if (dx<0)
 			{ swap(x1,x2); swap(y1,y2); dx=-dx; dy=-dy; }
 			a=abs(2*dy); err=0; dx2=dx*2;
 			sobe=(dy==0)?0:((dy>0)?1:-1); y=y1;
-			for (x=x1; x<=x2; x++) 
+			for (x=x1; x<=x2; x++)
 			{
 				sum+=*(image.data+y*image.step[0]+x*image.step[1]); count++; err=err+a;
 				if (err>=dx) { y=y+sobe; err=err-dx2; }
 			}
-		} 
-		else//¥Nªí¦ì©ó¶ê§Îªº2, 3, 6, 7°Ï
+		}
+		else//ï¿½Nï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½2, 3, 6, 7ï¿½ï¿½
 		{
 			if (dy<0) { swap(x1,x2); swap(y1,y2); dx=-dx; dy=-dy; }
 			a=abs(2*dx); err=0; dy2=dy*2;
 			sobe=(dx==0)?0:((dx>0)?1:-1); x=x1;
-			for (y=y1; y<=y2; y++) 
+			for (y=y1; y<=y2; y++)
 			{
 				sum+=*(image.data+y*image.step[0]+x*image.step[1]); count++; err=err+a;
 				if (err>=dy) { x=x+sobe; err=err-dy2; }
@@ -273,7 +274,7 @@ namespace Ciratefi
 		_ras.clear();
 		_ras.reserve(_cis.size()*_angleNum);
 		vector<double> Y(_angleNum);
-		for (int i=0; i<_cis.size(); i++) 
+		for (int i=0; i<_cis.size(); i++)
 		{
 			CorrData& candidate=_cis[i];
 
@@ -298,7 +299,7 @@ namespace Ciratefi
 				Y2+=Y[a]*Y[a];
 			}
 
-			for (int j=0; j<_angleNum; j++) 
+			for (int j=0; j<_angleNum; j++)
 			{
 				double coef=0;
 				for(int k=0; k<_angleNum; k++)
@@ -308,13 +309,13 @@ namespace Ciratefi
 				coef/=sqrt(X2*Y2);
 
 				if (_isMatchNegative) coef=abs(coef);
-				if (coef>maxCoef) 
+				if (coef>maxCoef)
 				{
 					maxCoef=coef; fitAngle=j;
 				}
 				rotate(X.rbegin(),X.rbegin()+1,X.rend());
 			}
-			if (maxCoef>_angleThreshold) 
+			if (maxCoef>_angleThreshold)
 			{
 				_ras.push_back(CorrData(y, x, candidate.GetScale(), fitAngle, maxCoef));
 			}
@@ -335,7 +336,7 @@ namespace Ciratefi
 				return Mat();
 			}
 			rafiResult.at<Vec3b>(row, col)=Vec3b((uchar)(_ras[i].GetCoefficient()*255.0),_ras[i].GetAngle(), 255);
-		}		
+		}
 		return rafiResult;
 	}
 
@@ -389,7 +390,7 @@ namespace Ciratefi
 						for (int y=0; y<length; y++)
 						{
 							int yn=y*length;
-							for (int x=0; x<length; x++) 
+							for (int x=0; x<length; x++)
 							{
 								if(round(sqrt(double((x-radius)*(x-radius)+(y-radius)*(y-radius))))<=radius)
 								{
@@ -447,7 +448,7 @@ namespace Ciratefi
 
 
 					if (_isMatchNegative) coef=abs(coef);
-					if (coef>maxCoef) 
+					if (coef>maxCoef)
 					{
 						maxCoef=coef;
 						fitScale=s;
@@ -490,4 +491,3 @@ namespace Ciratefi
 		return tefiResult;
 	}
 }
-

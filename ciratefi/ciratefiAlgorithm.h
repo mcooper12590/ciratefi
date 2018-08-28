@@ -1,8 +1,6 @@
 #ifndef __CIRATEFIALGORITHM_H__
 #define __CIRATEFIALGORITHM_H__
 
-
-
 namespace Ciratefi
 {
 	class CorrData
@@ -39,12 +37,12 @@ namespace Ciratefi
 		void SetCircleNum(int circleNum){_circleNum=circleNum;}
 		void SetInitialRadius(double initialRadius){_initialRadius=initialRadius;}
 		void SetTefiTolerance(int tefiTolerance){_tefiTolerance=tefiTolerance;}
-		
+
 		template <class T>
 		T clip(const T val, const T lower, const T upper){return std::max(lower, std::min(val, upper));}
 		double CircularSample(cv::Mat& image, int y, int x, int radius);
 		void Cisssa(cv::Mat& sourceImage);
-		cv::Mat quadradaimpar(cv::Mat& image);
+		cv::Mat MakeOdd(cv::Mat& image);
 		void Cissq(cv::Mat& templateImage);
 		void Cifi(cv::Mat& sourceImage);
 		cv::Mat DrawCifiResult(cv::Mat& sourceImage);
